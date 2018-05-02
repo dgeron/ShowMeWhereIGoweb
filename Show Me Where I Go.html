@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.0-beta.2.rc.2/leaflet.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.0-beta.2.rc.2/leaflet.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.2.3/leaflet.draw.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.2.3/leaflet.draw.css" rel="stylesheet" />
+
+<meta charset="utf-8">
+<title>Show Me Where I Go</title>
+<style>
+html, body, #map { margin: 0; height: 98%; width: 100%; }
+</style>
+</head>
+
+<body>
+  <div id='map'></div> 
+  <button id="convert" style="font-size:20px">NEW LINE</button>
+  <button id="convert1" style="font-size:20px">WRITE TO DATABASE</button>
+  <button id="convert2" style="font-size:20px">RETRIEVE FROM DATABASE</button>  
+   
+<script src="https://www.gstatic.com/firebasejs/4.8.0/firebase.js"></script>
+<script>
+  var config = {
+    apiKey: "AIzaSyCpmtdofefHw8ikOnV3eFQG7nTAwM75oHE",
+    authDomain: "showmylocationweb.firebaseapp.com",
+    databaseURL: "https://showmylocationweb.firebaseio.com",
+    projectId: "showmylocationweb",
+    storageBucket: "",
+    messagingSenderId: "1053971665682"
+  };
+  firebase.initializeApp(config);
+  console.log(firebase);	
+  
+  var database = firebase.database();
+  
+  var ref=database.ref("data")
+
+var cityCoordinates = [39.366560, 22.950960];
+var map = L.map('map').setView(cityCoordinates,15);
+
+L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Data © <a href="http://osm.org/copyright">OpenStreetMap</a>',
+    maxZoom: 15
+  }).addTo(map);
+
+var drawnItems = L.geoJson();
+        map.addLayer(drawnItems);
+
+        var drawControl = new L.Control.Draw({
+            draw: {
+            position: 'topleft',
+            polygon: {
+             title: 'polygon!',
+             allowIntersection: false,
+             drawError: {
+             timeout: 1000
+             },
+            shapeOptions: {
+              },
+			showArea: true
+                },
+            polyline: {
+            metric: false
+            },
+            circle: {
+            shapeOptions: {
+			}
+          },
+          polyline:true,
+          circle:false,
+          polygon:false,
+          rectangle:false,
+          marker:false,
+          },
+          edit: {
+          featureGroup: drawnItems
+          }
+        });
+        map.addControl(drawControl);
+
+var geojson_for_FeatureCollection = drawnItems.toGeoJSON();
+var features = [];
+
+map.on('draw:created', function (e) {
+    var type = e.layerType,
+        layer = e.layer;
+
+		var geojson = {};
+        geojson['type'] = 'Feature';
+        geojson['geometry'] = {};
+        geojson['geometry']['type'] = "Polyline";
+
+        coordinates = [];
+        latlngs = layer.getLatLngs();
+        for (var i = 0; i < latlngs.length; i++) {
+        coordinates.push([latlngs[i].lng, latlngs[i].lat])
+        }
+
+        geojson['geometry']['coordinates'] = [coordinates];
+
+        console.log(JSON.stringify(geojson));
+
+		document.getElementById("convert").addEventListener("click", function () {
+		ref.set(geojson);
+});
+		document.getElementById("convert1").addEventListener("click", function () {
+		ref.push(geojson);
+});
+
+    drawnItems.addLayer(layer);		
+
+});
+
+function printData(){
+	ref.on("value", function(snapshot){
+	console.log(snapshot.val());
+}, function (errorObject) {
+	console.log("Error" + errorObject.code);
+});	
+}
+</script>
+  
+</body>
+
+</html>
+
